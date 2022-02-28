@@ -144,7 +144,7 @@ Table_Get(Table *tbl, RecId rid, byte *record, int maxlen) {
     //finding record size and checking if < maxlen
     int len;
     if(slot == 1)len = PF_PAGE_SIZE - offset;
-    else len = (*(int *)(*buffer + 4*i)) - offset;
+    else len = (*(int *)(*buffer + 4*slot)) - offset;
     if(len > maxlen)len = maxlen
 
     memcpy(record,*buffer+offset,len);
