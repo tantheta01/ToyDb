@@ -73,8 +73,10 @@ loadCSV() {
     // Open main db file
     Schema *sch = parseSchema(line);
     Table *tbl;
-
-    tbl = Table_Open("mytable", sch, )
+    tbl = malloc(sizeof(tbl));
+    char *dbname = malloc(15*sizeof(char));
+    dbname = "MyDatabase";
+    tbl = Table_Open(dbname, sch, true, &tbl);
 
     char *tokens[MAX_TOKENS];
     char record[MAX_PAGE_SIZE];
@@ -86,7 +88,8 @@ loadCSV() {
 	RecId rid;
 
     Table_Insert(tbl, record, len, &rid);
-
+    char isint = 'i';
+    
 	
 
 	printf("%d %s\n", rid, tokens[0]);
@@ -94,15 +97,15 @@ loadCSV() {
 	// Indexing on the population column 
 	int population = atoi(tokens[2]);
 
-	UNIMPLEMENTED;
+	int err = AM_InsertEntry(tbl -> open_filedescriptor, isint, 4, (char *)&population, rid);
 	// Use the population field as the field to index on
 	    
 	checkerr(err);
     }
     fclose(fp);
     Table_Close(tbl);
-    err = PF_CloseFile(indexFD);
-    checkerr(err);
+    // err = PF_CloseFile(indexFD);
+    // checkerr(err);
     return sch;
 }
 

@@ -50,8 +50,8 @@ int
 Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
 {
     PF_Init();
-    Table *t;
-    t = malloc(sizeof(Table));
+    Table *t = *ptable;
+    // t = malloc(sizeof(Table));
     t -> dbname = malloc(sizeof(dbname));
     t -> numpages = 0;
     t -> lastpagenumber = -1;
@@ -73,10 +73,11 @@ Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
             PF_DestroyFile(fd);
             fd = PF_CreateFile(dbname);
         }
+        t -> open_filedescriptor = fd;
     }
     else{
         fd = PF_CreateFile(dbname);
-        t -> open_filedescriptor;
+        t -> open_filedescriptor = fd;
     }
     return 0;
 
@@ -150,7 +151,7 @@ Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
  */
 int
 Table_Get(Table *tbl, RecId rid, byte *record, int maxlen) {
-    int slot = rid & 0xFFFF;
+    int slot = rid % (1<<16);
     int pageNum = rid >> 16;
 
     //UNIMPLEMENTED;
@@ -160,9 +161,9 @@ Table_Get(Table *tbl, RecId rid, byte *record, int maxlen) {
     // Unfix the page
     int fd = tbl -> open_filedescriptor;
     char **buffer = malloc(sizeof(char*));
-    int *pageNo = malloc(sizeof(int)); //can use pageNum above too ig
 
-    int getPage = PF_GetThisPage(fd,pageNo,buffer);
+
+    int getPage = PF_GetThisPage(fd,pageNum,buffer);
     int offset = getNthSlotOffset(slot,*buffer);
 
     //finding record size and checking if < maxlen
@@ -173,7 +174,7 @@ Table_Get(Table *tbl, RecId rid, byte *record, int maxlen) {
 
 
     memcpy(record,*buffer+offset,len);
-    PF_UnfixPage(fd,*pageNo,TRUE);
+    PF_UnfixPage(fd,pageNum,TRUE);
     return len; // return size of record
 }
 
@@ -181,7 +182,7 @@ void
 Table_Scan(Table *tbl, void *callbackObj, ReadFunc callbackfn) {
 
     //UNIMPLEMENTED;
-
+    // PF_GetThisPage  
     // For each page obtained using PF_GetFirstPage and PF_GetNextPage
     //    for each record in that page,
     //          callbackfn(callbackObj, rid, record, recordLen)
