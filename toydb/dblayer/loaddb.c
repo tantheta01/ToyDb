@@ -25,7 +25,27 @@ in codec.c to convert strings into compact binary representations
  */
 int
 encode(Schema *sch, char **fields, byte *record, int spaceLeft) {
-    UNIMPLEMENTED;
+    
+    int tot_bytes = 0;
+    for(int i=0;i < sch -> numColumns; i++){
+        if(tot_bytes >= spaceLeft){
+            break;
+        }
+        int type = sch -> columns[i];
+        int totrecord = record+tot_bytes;
+        int netspace = spaceLeft - tot_bytes;
+        if(type == VARCHAR){
+            tot_bytes = tot_bytes + EncodeCString(fields[i], totrecord, netspace);
+        }
+        if(type == INT)
+        {
+            tot_bytes = tot_bytes + EncodeInt(atoi(fields[i]), totrecord);
+        }
+        if(type == LONG){
+            tot_bytes = tot_bytes + EncodeInt(atoll(fields[i]), totrecord);
+        }
+    }
+    return tot_bytes;
     // for each field
     //    switch corresponding schema type is
     //        VARCHAR : EncodeCString
@@ -54,7 +74,7 @@ loadCSV() {
     Schema *sch = parseSchema(line);
     Table *tbl;
 
-    UNIMPLEMENTED;
+    tbl = Table_Open("mytable", sch, )
 
     char *tokens[MAX_TOKENS];
     char record[MAX_PAGE_SIZE];
@@ -65,7 +85,9 @@ loadCSV() {
 	int len = encode(sch, tokens, record, sizeof(record));
 	RecId rid;
 
-	UNIMPLEMENTED;
+    Table_Insert(tbl, record, len, &rid);
+
+	
 
 	printf("%d %s\n", rid, tokens[0]);
 
