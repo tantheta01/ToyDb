@@ -78,22 +78,60 @@ Table_Get(Table *tbl, RecId rid, byte *record, int maxlen) {
     int slot = rid & 0xFFFF;
     int pageNum = rid >> 16;
 
-    UNIMPLEMENTED;
+    //UNIMPLEMENTED;
     // PF_GetThisPage(pageNum)
     // In the page get the slot offset of the record, and
     // memcpy bytes into the record supplied.
     // Unfix the page
+    int fd = tbl -> open_filedescriptor;
+    char **buffer = malloc(sizeof(char*));
+    int *pageNo = malloc(sizeof(int)); //can use pageNum above too ig
+
+    int getPage = PF_GetThisPage(fd,pageNo,buffer);
+    int offset = getNthSlotOffset(slot,*buffer);
+
+    //finding record size and checking if < maxlen
+    int len;
+    if(slot == 1)len = PF_PAGE_SIZE - offset;
+    else len = (*(int *)(*buffer + 4*i)) - offset;
+    if(len > maxlen)len = maxlen
+    
+    memcpy(record,*buffer+offset,len);
+    PF_UnfixPage(fd,*pageNo,TRUE);
     return len; // return size of record
 }
 
 void
 Table_Scan(Table *tbl, void *callbackObj, ReadFunc callbackfn) {
 
-    UNIMPLEMENTED;
+    //UNIMPLEMENTED;
 
     // For each page obtained using PF_GetFirstPage and PF_GetNextPage
     //    for each record in that page,
     //          callbackfn(callbackObj, rid, record, recordLen)
+    int fd = tbl -> open_filedescriptor;
+    char **buffer = malloc(sizeof(char*));
+    int *pageNo = malloc(sizeof(int));
+
+    //to store page obtained
+    int getPage = PF_GetFirstPage(fd,pageNo,buffer);
+    while(getPage >= 0){
+        int slots = getNumSlots(*buffer);
+        //for each record, do callback function
+        for(int i = 1; i <= slots; i++){
+            //get offset for that i
+            int offset = getNthSlotOffset(i,*buffer);
+            int recordLen;
+            if(i == 1)recordLen = PF_PAGE_SIZE - offset;
+            else recordLen = (*(int *)(*buffer + 4*i)) - offset; //cehck this
+            int rid = ((*pageNo) << 16) + i;
+            char record[PF_PAGE_SIZE];
+            memcpy(record,*buffer + offset, recordLen); //store in record array
+            callbackfn(callbackObj, rid, record, recordLen);
+        }
+        PF_UnfixPage(fd,*pageNo,TRUE);
+        getPage = PF_GetNextPage(fd,pageNo,buffer);
+    }
 }
 
 
