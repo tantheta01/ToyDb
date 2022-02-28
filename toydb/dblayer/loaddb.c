@@ -74,7 +74,7 @@ loadCSV() {
     Schema *sch = parseSchema(line);
     Table *tbl;
 
-    UNIMPLEMENTED;
+    tbl = Table_Open("mytable", sch, )
 
     char *tokens[MAX_TOKENS];
     char record[MAX_PAGE_SIZE];
@@ -85,7 +85,9 @@ loadCSV() {
 	int len = encode(sch, tokens, record, sizeof(record));
 	RecId rid;
 
-	UNIMPLEMENTED;
+    Table_Insert(tbl, record, len, &rid);
+
+	
 
 	printf("%d %s\n", rid, tokens[0]);
 
