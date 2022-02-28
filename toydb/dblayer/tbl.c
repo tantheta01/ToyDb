@@ -93,9 +93,8 @@ void
 Table_Close(Table *tbl) {
     int fd = tbl -> open_filedescriptor;
     PF_CloseFile(fd);
-    
-
     // Unfix any dirty pages, close file.
+    //table insert takes care of unfixing dirty pages. There can't be any more to unfix so directly closing file will work
 }
 
 
@@ -170,8 +169,8 @@ Table_Get(Table *tbl, RecId rid, byte *record, int maxlen) {
     int len;
     if(slot == 1)len = PF_PAGE_SIZE - offset;
     else len = (*(int *)(*buffer + 4*i)) - offset;
-    if(len > maxlen)len = maxlen;
-    
+    if(len > maxlen)len = maxlen
+
     memcpy(record,*buffer+offset,len);
     PF_UnfixPage(fd,*pageNo,TRUE);
     return len; // return size of record
