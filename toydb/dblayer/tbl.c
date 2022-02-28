@@ -28,8 +28,20 @@ Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
     PF_Init();
     Table *t;
     t = malloc(sizeof(Table));
-    
+    t -> dbname = malloc(sizeof(dbname));
+    t -> numpages = 0;
+    t -> lastpagenumber = -1;
     strcpy(dbname, t->dbname);
+    t -> schema  = malloc(sizeof(Schema));
+    t -> schema -> numColumns = schema -> numColumns;
+    t -> schema -> columns = malloc(schema->numColumns*sizeof(char*));
+    int i=0;
+    for(i=0;i<schema->numColumns; i++){
+        t -> schema -> columns[i] = malloc(sizeof(schema -> columns[i]));
+        strcpy(t->schema->columns[i], schema->columns[i]);
+    }
+
+
     int fd = PF_OpenFile(t -> dbname);
     if(fd >= 0){
         if(overwrite){
@@ -40,8 +52,9 @@ Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
     }
     else{
         fd = PF_CreateFile(dbname);
-        t -> 
+        t -> open_filedescriptor;
     }
+    return 0;
 
     // name of file is dbname
 
@@ -54,8 +67,8 @@ Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
 
 void
 Table_Close(Table *tbl) {
-    //UNIMPLEMENTED;
-    PF_CloseFile(tbl->open_filedescriptor);
+    int fd = tbl -> open_filedescriptor;
+    PF_CloseFile(fd);
     // Unfix any dirty pages, close file.
     //table insert takes care of unfixing dirty pages. There can't be any more to unfix so directly closing file will work
 }
@@ -63,10 +76,46 @@ Table_Close(Table *tbl) {
 
 int
 Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
+
     // Allocate a fresh page if len is not enough for remaining space
     // Get the next free slot on page, and copy record in the free
     // space
     // Update slot and free space index information on top of page.
+    // a page is a character array - how to check how much page is free
+    int *pagenum = malloc(sizeof(int));
+    char **pageBuffer;
+    if(tbl -> numpages == 0){
+        PF_AllocPage(tbl->open_filedescriptor, pagenum, pageBuffer);
+        *(int *)(*pageBuffer+4) = PF_PAGE_SIZE - 8;
+        *(int *)(*pageBuffer) = 0;
+
+    }
+    else{
+        *pagenum = tbl->lastpagenumber;
+        PF_GetThisPage(tbl->open_filedescriptor, *pagenum, (char **)pageBuffer);
+        int space_left = *(int *)(*pageBuffer+4);
+        if(space_left < len + 4){
+            PF_UnfixPage(tbl->open_filedescriptor, *pagenum, 1);
+            PF_AllocPage(tbl->open_filedescriptor, pagenum, pageBuffer);
+            *(int *)(*pageBuffer+4) = PF_PAGE_SIZE - 8;
+            *(int *)(*pageBuffer) = 0;
+        }
+    }
+    int number_slots = *(int *)(*pageBuffer);
+    int final_offset;
+    if(number_slots == 0){
+        final_offset = PF_PAGE_SIZE - len;
+    }
+    else{
+        final_offset = *(int *)(*pageBuffer + 4*(number_slots + 1)) - len;
+    }
+    *(int *)(*pageBuffer) = number_slots+1;
+    *(int *)(*pageBuffer + 4*(number_slots+2)) = final_offset;
+    memcpy(*pageBuffer + final_offset, record, len);
+    *rid = ((*pagenum) << 16) + number_slots+1;
+    PF_UnfixPage(tbl->open_filedescriptor, *pagenum,1 );
+    
+
 }
 
 #define checkerr(err) {if (err < 0) {PF_PrintError(); exit(EXIT_FAILURE);}}
