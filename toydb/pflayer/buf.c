@@ -82,20 +82,23 @@ GLOBAL VARIABLES MODIFIED:
     if (PFfirstbpage == bpage) {
         PFfirstbpage = bpage->nextpage;
     }
-
+    printf("De1\n");
     if (PFlastbpage == bpage) {
         PFlastbpage = bpage->prevpage;
     }
-
+    printf("ok bye\n");
     if (bpage->nextpage != NULL) {
+        // printf()
         bpage->nextpage->prevpage = bpage->prevpage;
     }
-
+    printf("De444\n");
     if (bpage->prevpage != NULL) {
         bpage->prevpage->nextpage = bpage->nextpage;
     }
+    printf("D23\n");
 
     bpage->prevpage = bpage->nextpage = NULL;
+    printf("D33333\n");
 
 }
 
@@ -303,20 +306,21 @@ RETURN VALUE:
 
 *****************************************************************************/
 {
+    printf("hello\n");
     PFbpage *bpage;
-
+    printf("Aeguments %d %d %d", fd, pagenum, dirty);
     if ((bpage= PFhashFind(fd,pagenum))==NULL) {
         /* page not in buffer */
         PFerrno = PFE_PAGENOTINBUF;
         return(PFerrno);
     }
-
+    printf("314\n");
     if (!bpage->fixed) {
         /* page already unfixed */
         PFerrno = PFE_PAGEUNFIXED;
         return(PFerrno);
     }
-
+    printf("321\n");
     if (dirty)
         /* mark this page dirty */
     {
@@ -327,10 +331,13 @@ RETURN VALUE:
     bpage->fixed = FALSE;
 
     /* unlink this page */
+    printf("331\n");
     PFbufUnlink(bpage);
+    printf("333\n");
 
     /* insert it as head of linked list to make it most recently used*/
     PFbufLinkHead(bpage);
+    printf("337\n");
 
     return(PFE_OK);
 }

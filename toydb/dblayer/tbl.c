@@ -57,6 +57,7 @@ Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
     t -> dbname = malloc(sizeof(dbname)+1);
     t -> numpages = 0;
     t -> lastpagenumber = -1;
+    t -> pagenumbers = malloc(100 * sizeof(int));
     
     strcpy(t->dbname, dbname);
     // printf("60\n");
@@ -118,26 +119,26 @@ Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
     // space
     // Update slot and free space index information on top of page.
     // a page is a character array - how to check how much page is free
-    printf("121\n");
+    // printf("121\n");
     int *pagenum = malloc(sizeof(int));
     char **pageBuffer = malloc(sizeof(char*));
-    printf("124\n");
+    // printf("124\n");
     if(tbl -> numpages == 0){
         
 
         PF_AllocPage(tbl->open_filedescriptor, pagenum, (char **)pageBuffer);
-        printf("126\n");
-        printf("The size of this buffer is::::%d\n", sizeof(pageBuffer[0][0]));
-        printf("The size f a char is %d\n", sizeof(char));
-        printf("The value of top is as given%d\n", *(int *)(pageBuffer + 4));
+        // printf("126\n");
+        // printf("The size of this buffer is::::%d\n", sizeof(pageBuffer[0][0]));
+        // printf("The size f a char is %d\n", sizeof(char));
+        // printf("The value of top is as given%d\n", *(int *)(pageBuffer + 4));
         *(int *)(pageBuffer+4) = PF_PAGE_SIZE - 8;
-        printf("129\n");
+        // printf("129\n");
         *(int *)(pageBuffer) = 0;
-        printf("129\n");
+        // printf("129\n");
 
     }
     else{
-        printf("Just before segmentation fault\n");
+        // printf("Just before segmentation fault\n");
 
         *pagenum = tbl->lastpagenumber;
         PF_GetThisPage(tbl->open_filedescriptor, *pagenum, (char **)pageBuffer);
@@ -148,7 +149,7 @@ Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
             *(int *)(pageBuffer+4) = PF_PAGE_SIZE - 8;
             *(int *)(pageBuffer) = 0;
         }
-        printf("After Segmentation fault\n");
+        // printf("After Segmentation fault\n");
     }
     int number_slots = *(int *)(pageBuffer);
     int final_offset;
@@ -160,12 +161,16 @@ Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
     }
     *(int *)(pageBuffer) = number_slots+1;
     *(int *)(pageBuffer + 4*(number_slots+2)) = final_offset;
-    printf("163 printf\n");
+    // printf("163 printf\n");
     memcpy(pageBuffer + final_offset, record, len);
-    
+    // printf("haan ye bhi\n");
     *rid = ((*pagenum) << 16) + number_slots+1;
-    PF_UnfixPage(tbl->open_filedescriptor, *pagenum,1 );
-    printf("printing this also\n");
+    // printf("segmentationfaultttttttt\n");
+    // printf("Value of pagenumber isss%d\n\n", *pagenum);
+    // printf("open file descriptor%d \n", tbl->open_filedescriptor);
+    // PF_UnfixPage(tbl->open_filedescriptor, *pagenum,(1>0) );
+    // printf("printing this also\n");
+    tbl -> lastpagenumber = *pagenum;
     
 
 }

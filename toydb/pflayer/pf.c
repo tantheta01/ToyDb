@@ -730,18 +730,22 @@ PF_UnfixPage(int fd,	/* file descriptor */
              int dirty	/* true if file is dirty */
             )
 {
+    // printf("unfixing things\n\n\n\n\n\n\n\n");
 
     if (PFinvalidFd(fd)) {
         PFerrno = PFE_FD;
         return(PFerrno);
     }
 
+
     if (PFinvalidPagenum(fd,pagenum)) {
         PFerrno = PFE_INVALIDPAGE;
         return(PFerrno);
     }
-
-    return(PFbufUnfix(fd,pagenum,dirty));
+    // printf("nahi yaar\n");
+    int X = PFbufUnfix(fd,pagenum,dirty);
+    // printf("yes mistake here\n");
+    return X;
 }
 
 /* error messages */

@@ -25,6 +25,7 @@ typedef struct {
     int numpages; // number of pages
     int open_filedescriptor; // descriptor of file open
     int lastpagenumber;
+    int *pagenumbers;
 } Table ;
 
 typedef int RecId;
