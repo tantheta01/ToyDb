@@ -10,10 +10,34 @@
 #define SLOT_COUNT_OFFSET 2
 #define checkerr(err) {if (err < 0) {PF_PrintError(); exit(EXIT_FAILURE);}}
 
-int  getLen(int slot, byte *pageBuf); UNIMPLEMENTED;
-int  getNumSlots(byte *pageBuf); UNIMPLEMENTED;
-void setNumSlots(byte *pageBuf, int nslots); UNIMPLEMENTED;
-int  getNthSlotOffset(int slot, char* pageBuf); UNIMPLEMENTED;
+int  getLen(int slot, byte *pageBuf){
+    int nslots = *(int *)(pageBuf);
+    if(slot > nslots){
+        return -1;
+    }
+    slot -= 1;
+    int slotOffset = *(int *)(pageBuf + 4*(2+slot));
+    if(slot == nslots-1){
+        return PF_PAGE_SIZE - slotOffset;
+    }
+    int nextoff = *(int *)(pageBuf + 4*(3+slot));
+    return nextoff - slotOffset;
+}
+int  getNumSlots(byte *pageBuf){
+    return *(int *)(pageBuf);
+}
+void setNumSlots(byte *pageBuf, int nslots){
+    *(int *)(pageBuf) = nslots;
+}
+int  getNthSlotOffset(int slot, char* pageBuf){
+    int nslots = *(int *)(pageBuf);
+    if(slot > nslots){
+        return -1;
+    }
+    slot -= 1;
+    int slotOffset = *(int *)(pageBuf + 4*(2+slot));
+    return slotOffset;
+}
 
 
 /**
