@@ -24,8 +24,7 @@ typedef struct {
     char *dbname; // name of database which is also name of file
     int numpages; // number of pages
     int open_filedescriptor; // descriptor of file open
-    
-    
+    int lastpagenumber;
 } Table ;
 
 typedef int RecId;
