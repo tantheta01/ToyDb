@@ -12,8 +12,32 @@ void
 printRow(void *callbackObj, RecId rid, byte *row, int len) {
     Schema *schema = (Schema *) callbackObj;
     byte *cursor = row;
-
-    UNIMPLEMENTED;
+    //UNIMPLEMENTED;
+    int cur = 0,type;
+    int numColumns = schema->numColumns;
+    for(int i = 0; i < numColumns; i++){
+        type = schema->columns[i]->type;
+        if(type == INT){
+            printf("%d",DecodeInt(cursor+cur));
+            //four bytes shift
+            cur += 4;
+        }
+        else if(type == LONG){
+            printf("%lld",DecodeLong(cursor+cur));
+            //eight bytes shift
+            cur += 8;
+        }
+        else if(type == VARCHAR){
+            char s[len];
+            // 2 for ' and number of bytes according to the string shifted
+            cur += (2 + DecodeCString(cursor+cur,s,len-cur));
+            printf("%s",s); 
+        }
+        if(i != numColumns-1){
+            printf(",")
+        }
+    }
+    printf("\n");
 }
 
 #define DB_NAME "data.db"
@@ -21,7 +45,18 @@ printRow(void *callbackObj, RecId rid, byte *row, int len) {
 	 
 void
 index_scan(Table *tbl, Schema *schema, int indexFD, int op, int value) {
-    UNIMPLEMENTED;
+
+    int fd = tbl->open_filedescriptor;
+    int scanner = AM_OpenIndexScan(fd,'i',4,op,char*(&value));
+    while(true){
+        int recid = AM_FindNextEntry(scanner);
+        if(recid == AME_EOF)break;
+        char record[PF_PAGE_SIZE];
+        int len = Table_Get(tbl,recid,record,PF_PAGE_SIZE);
+        printRow(schema,recid,record,len);
+    }
+    AM_CloseIndexScan(scanner);
+    //UNIMPLEMENTED;
     /*
     Open index ...
     while (true) {
@@ -31,6 +66,7 @@ index_scan(Table *tbl, Schema *schema, int indexFD, int op, int value) {
     }
     close index ...
     */
+
 }
 
 int
@@ -39,9 +75,10 @@ main(int argc, char **argv) {
     Schema *schema = parseSchema(schemaTxt);
     Table *tbl;
 
-    UNIMPLEMENTED;
+    //UNIMPLEMENTED;
     if (argc == 2 && *(argv[1]) == 's') {
-	UNIMPLEMENTED;
+	//UNIMPLEMENTED;
+    Table_Scan(tbl,schema,printRow);
 	// invoke Table_Scan with printRow, which will be invoked for each row in the table.
     } else {
 	// index scan by default
