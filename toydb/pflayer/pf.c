@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <sys/file.h>
+#include<string.h>
 #include "pf.h"
 #include <stdlib.h>
 #include <strings.h>

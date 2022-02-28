@@ -49,36 +49,47 @@ int  getNthSlotOffset(int slot, char* pageBuf){
 int
 Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
 {
+    // printf("Inside table open\n");
     PF_Init();
     Table *t = *ptable;
+    // printf("55\n");
     // t = malloc(sizeof(Table));
-    t -> dbname = malloc(sizeof(dbname));
+    t -> dbname = malloc(sizeof(dbname)+1);
     t -> numpages = 0;
     t -> lastpagenumber = -1;
-    strcpy(dbname, t->dbname);
+    
+    strcpy(t->dbname, dbname);
+    // printf("60\n");
     t -> schema  = malloc(sizeof(Schema));
     t -> schema -> numColumns = schema -> numColumns;
     t -> schema -> columns = malloc(schema->numColumns*sizeof(char*));
     int i=0;
+    // printf("66\n");
     for(i=0;i<schema->numColumns; i++){
         t -> schema -> columns[i] = malloc(sizeof(schema -> columns[i]));
-        strcpy(t->schema->columns[i], schema->columns[i]);
+        t->schema->columns[i]->name = malloc(20*sizeof(char));
+        // printf("70\n");
+        strcpy(t->schema->columns[i]->name, schema->columns[i]->name);
+        t->schema->columns[i]->type = schema->columns[i]->type;
     }
 
 
     int fd = PF_OpenFile(t -> dbname);
+    // printf("77\n");
     if(fd >= 0){
         if(overwrite){
             PF_CloseFile(fd);
-            PF_DestroyFile(fd);
+            PF_DestroyFile(t->dbname);
             fd = PF_CreateFile(dbname);
         }
         t -> open_filedescriptor = fd;
     }
+    
     else{
         fd = PF_CreateFile(dbname);
         t -> open_filedescriptor = fd;
     }
+    // printf("86\n");
     return 0;
 
     // name of file is dbname
@@ -107,38 +118,54 @@ Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
     // space
     // Update slot and free space index information on top of page.
     // a page is a character array - how to check how much page is free
+    printf("121\n");
     int *pagenum = malloc(sizeof(int));
-    char **pageBuffer;
+    char **pageBuffer = malloc(sizeof(char*));
+    printf("124\n");
     if(tbl -> numpages == 0){
-        PF_AllocPage(tbl->open_filedescriptor, pagenum, pageBuffer);
-        *(int *)(*pageBuffer+4) = PF_PAGE_SIZE - 8;
-        *(int *)(*pageBuffer) = 0;
+        
+
+        PF_AllocPage(tbl->open_filedescriptor, pagenum, (char **)pageBuffer);
+        printf("126\n");
+        printf("The size of this buffer is::::%d\n", sizeof(pageBuffer[0][0]));
+        printf("The size f a char is %d\n", sizeof(char));
+        printf("The value of top is as given%d\n", *(int *)(pageBuffer + 4));
+        *(int *)(pageBuffer+4) = PF_PAGE_SIZE - 8;
+        printf("129\n");
+        *(int *)(pageBuffer) = 0;
+        printf("129\n");
 
     }
     else{
+        printf("Just before segmentation fault\n");
+
         *pagenum = tbl->lastpagenumber;
         PF_GetThisPage(tbl->open_filedescriptor, *pagenum, (char **)pageBuffer);
-        int space_left = *(int *)(*pageBuffer+4);
+        int space_left = *(int *)(pageBuffer+4);
         if(space_left < len + 4){
             PF_UnfixPage(tbl->open_filedescriptor, *pagenum, 1);
             PF_AllocPage(tbl->open_filedescriptor, pagenum, pageBuffer);
-            *(int *)(*pageBuffer+4) = PF_PAGE_SIZE - 8;
-            *(int *)(*pageBuffer) = 0;
+            *(int *)(pageBuffer+4) = PF_PAGE_SIZE - 8;
+            *(int *)(pageBuffer) = 0;
         }
+        printf("After Segmentation fault\n");
     }
-    int number_slots = *(int *)(*pageBuffer);
+    int number_slots = *(int *)(pageBuffer);
     int final_offset;
     if(number_slots == 0){
         final_offset = PF_PAGE_SIZE - len;
     }
     else{
-        final_offset = *(int *)(*pageBuffer + 4*(number_slots + 1)) - len;
+        final_offset = *(int *)(pageBuffer + 4*(number_slots + 1)) - len;
     }
-    *(int *)(*pageBuffer) = number_slots+1;
-    *(int *)(*pageBuffer + 4*(number_slots+2)) = final_offset;
-    memcpy(*pageBuffer + final_offset, record, len);
+    *(int *)(pageBuffer) = number_slots+1;
+    *(int *)(pageBuffer + 4*(number_slots+2)) = final_offset;
+    printf("163 printf\n");
+    memcpy(pageBuffer + final_offset, record, len);
+    
     *rid = ((*pagenum) << 16) + number_slots+1;
     PF_UnfixPage(tbl->open_filedescriptor, *pagenum,1 );
+    printf("printing this also\n");
     
 
 }
@@ -170,7 +197,7 @@ Table_Get(Table *tbl, RecId rid, byte *record, int maxlen) {
     int len;
     if(slot == 1)len = PF_PAGE_SIZE - offset;
     else len = (*(int *)(*buffer + 4*slot)) - offset;
-    if(len > maxlen)len = maxlen
+    if(len > maxlen)len = maxlen;
 
     memcpy(record,*buffer+offset,len);
     PF_UnfixPage(fd,pageNum,TRUE);

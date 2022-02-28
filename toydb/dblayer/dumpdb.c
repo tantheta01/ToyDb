@@ -34,7 +34,7 @@ printRow(void *callbackObj, RecId rid, byte *row, int len) {
             printf("%s",s); 
         }
         if(i != numColumns-1){
-            printf(",")
+            printf("hello,");
         }
     }
     printf("\n");
@@ -47,7 +47,7 @@ void
 index_scan(Table *tbl, Schema *schema, int indexFD, int op, int value) {
 
     int fd = tbl->open_filedescriptor;
-    int scanner = AM_OpenIndexScan(fd,'i',4,op,char*(&value));
+    int scanner = AM_OpenIndexScan(fd,'i',4,op,(char*)(&value));
     while(true){
         int recid = AM_FindNextEntry(scanner);
         if(recid == AME_EOF)break;
