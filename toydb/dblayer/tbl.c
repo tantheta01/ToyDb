@@ -30,6 +30,7 @@ Table_Open(char *dbname, Schema *schema, bool overwrite, Table **ptable)
     t = malloc(sizeof(Table));
     t -> dbname = malloc(sizeof(dbname));
     t -> numpages = 0;
+    t -> lastpagenumber = -1;
     strcpy(dbname, t->dbname);
     t -> schema  = malloc(sizeof(Schema));
     t -> schema -> numColumns = schema -> numColumns;
@@ -82,6 +83,40 @@ Table_Insert(Table *tbl, byte *record, int len, RecId *rid) {
     // space
     // Update slot and free space index information on top of page.
     // a page is a character array - how to check how much page is free
+    int *pagenum = malloc(sizeof(int));
+    char **pageBuffer;
+    if(tbl -> numpages == 0){
+        PF_AllocPage(tbl->open_filedescriptor, pagenum, pageBuffer);
+        *(int *)(*pageBuffer+4) = PF_PAGE_SIZE - 8;
+        *(int *)(*pageBuffer) = 0;
+
+    }
+    else{
+        *pagenum = tbl->lastpagenumber;
+        PF_GetThisPage(tbl->open_filedescriptor, *pagenum, (char **)pageBuffer);
+        int space_left = *(int *)(*pageBuffer+4);
+        if(space_left < len + 4){
+            PF_UnfixPage(tbl->open_filedescriptor, *pagenum, 1);
+            PF_AllocPage(tbl->open_filedescriptor, pagenum, pageBuffer);
+            *(int *)(*pageBuffer+4) = PF_PAGE_SIZE - 8;
+            *(int *)(*pageBuffer) = 0;
+        }
+    }
+    int number_slots = *(int *)(*pageBuffer);
+    int final_offset;
+    if(number_slots == 0){
+        final_offset = PF_PAGE_SIZE - len;
+    }
+    else{
+        final_offset = *(int *)(*pageBuffer + 4*(number_slots + 1)) - len;
+    }
+    *(int *)(*pageBuffer) = number_slots+1;
+    *(int *)(*pageBuffer + 4*(number_slots+2)) = final_offset;
+    memcpy(*pageBuffer + final_offset, record, len);
+    *rid = ((*pagenum) << 16) + number_slots+1;
+    PF_UnfixPage(tbl->open_filedescriptor, *pagenum,1 );
+    
+
 }
 
 #define checkerr(err) {if (err < 0) {PF_PrintError(); exit(EXIT_FAILURE);}}
@@ -106,11 +141,17 @@ Table_Get(Table *tbl, RecId rid, byte *record, int maxlen) {
 void
 Table_Scan(Table *tbl, void *callbackObj, ReadFunc callbackfn) {
 
-    UNIMPLEMENTED;
+    
 
     // For each page obtained using PF_GetFirstPage and PF_GetNextPage
     //    for each record in that page,
     //          callbackfn(callbackObj, rid, record, recordLen)
+    char **buffer = malloc(sizeof(char*)); 
+    int *pagenum = malloc(sizeof(int));
+    int status = PF_GetFirstPage(tbl->open_filedescriptor, pagenum, buffer);
+    if(status < 0){
+        // 
+    }
 }
 
 
